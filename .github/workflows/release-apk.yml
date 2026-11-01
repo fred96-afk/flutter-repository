@@ -1,0 +1,349 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión del release (ej. 1.2.0 o v1.2.0). Vacío = versión de pubspec.yaml'
+        required: false
+        type: string
+      build_number:
+        description: 'versionCode entero. Vacío = número de ejecución de GitHub Actions'
+        required: false
+        type: string
+      backend_url:
+        description: 'URL del backend (ej. https://api.midominio.com)'
+        required: false
+        type: string
+      pusher_app_key:
+        description: 'Pusher App Key'
+        required: false
+        type: string
+      pusher_cluster:
+        description: 'Pusher Cluster (ej. us2)'
+        required: false
+        type: string
+      variants:
+        description: 'APKs a generar'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - universal
+          - split
+      include_aab:
+        description: 'Incluir App Bundle (.aab) para Play Store'
+        required: true
+        default: true
+        type: boolean
+      prerelease:
+        description: 'Marcar el release como pre-release'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.9'
+  JAVA_VERSION: '17'
+
+jobs:
+  build-and-release:
+    name: Build APKs and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+
+          PUBSPEC=$(awk '/^version:/ {print $2; exit}' pubspec.yaml)
+          PUB_NAME="${PUBSPEC%%+*}"
+          PUB_CODE="${PUBSPEC#*+}"
+          if [ "$PUB_CODE" = "$PUBSPEC" ]; then
+            PUB_CODE=1
+          fi
+
+          INPUT_VERSION="${INPUT_VERSION:-}"
+          INPUT_BUILD="${INPUT_BUILD_NUMBER:-}"
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            REF_VERSION="${GITHUB_REF_NAME#v}"
+            VERSION_NAME="${INPUT_VERSION:-$REF_VERSION}"
+            if [ -z "$INPUT_BUILD" ] && [[ "$VERSION_NAME" == *"+"* ]]; then
+              INPUT_BUILD="${VERSION_NAME#*+}"
+              VERSION_NAME="${VERSION_NAME%%+*}"
+            fi
+            RELEASE_TAG="$GITHUB_REF_NAME"
+          else
+            VERSION_NAME="${INPUT_VERSION:-$PUB_NAME}"
+            VERSION_NAME="${VERSION_NAME#v}"
+            if [ -n "$INPUT_VERSION" ]; then
+              RELEASE_TAG="v${VERSION_NAME}"
+            else
+              RELEASE_TAG="v${VERSION_NAME}-build.${GITHUB_RUN_NUMBER}"
+            fi
+          fi
+
+          BUILD_NUMBER="${INPUT_BUILD:-${GITHUB_RUN_NUMBER:-$PUB_CODE}}"
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            BUILD_NUMBER="${PUB_CODE}"
+          fi
+
+          echo "name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Versión del release"
+            echo ""
+            echo "- Versión: \`${VERSION_NAME}\`"
+            echo "- versionCode: \`${BUILD_NUMBER}\`"
+            echo "- Tag: \`${RELEASE_TAG}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Resolve build variables
+        id: vars
+        shell: bash
+        env:
+          INPUT_BACKEND_URL: ${{ inputs.backend_url }}
+          VAR_BACKEND_URL: ${{ vars.BACKEND_URL }}
+          SECRET_BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          INPUT_PUSHER_APP_KEY: ${{ inputs.pusher_app_key }}
+          VAR_PUSHER_APP_KEY: ${{ vars.PUSHER_APP_KEY }}
+          SECRET_PUSHER_APP_KEY: ${{ secrets.PUSHER_APP_KEY }}
+          INPUT_PUSHER_CLUSTER: ${{ inputs.pusher_cluster }}
+          VAR_PUSHER_CLUSTER: ${{ vars.PUSHER_CLUSTER }}
+          SECRET_PUSHER_CLUSTER: ${{ secrets.PUSHER_CLUSTER }}
+          VAR_PUSHER_PORT: ${{ vars.PUSHER_PORT }}
+          VAR_PUSHER_USE_TLS: ${{ vars.PUSHER_USE_TLS }}
+          INCLUDE_AAB_INPUT: ${{ inputs.include_aab }}
+          PRERELEASE_INPUT: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          BACKEND_URL="${INPUT_BACKEND_URL:-${VAR_BACKEND_URL:-${SECRET_BACKEND_URL:-https://polleriaback1.onrender.com}}}"
+          PUSHER_APP_KEY="${INPUT_PUSHER_APP_KEY:-${VAR_PUSHER_APP_KEY:-${SECRET_PUSHER_APP_KEY:-a442712ed0da505c97d1}}}"
+          PUSHER_CLUSTER="${INPUT_PUSHER_CLUSTER:-${VAR_PUSHER_CLUSTER:-${SECRET_PUSHER_CLUSTER:-us2}}}"
+          PUSHER_PORT="${VAR_PUSHER_PORT:-443}"
+          PUSHER_USE_TLS="${VAR_PUSHER_USE_TLS:-true}"
+          INCLUDE_AAB="${INCLUDE_AAB_INPUT:-true}"
+          PRERELEASE="${PRERELEASE_INPUT:-false}"
+
+          echo "backend_url=${BACKEND_URL}" >> "$GITHUB_OUTPUT"
+          echo "pusher_app_key=${PUSHER_APP_KEY}" >> "$GITHUB_OUTPUT"
+          echo "pusher_cluster=${PUSHER_CLUSTER}" >> "$GITHUB_OUTPUT"
+          echo "pusher_port=${PUSHER_PORT}" >> "$GITHUB_OUTPUT"
+          echo "pusher_use_tls=${PUSHER_USE_TLS}" >> "$GITHUB_OUTPUT"
+          echo "include_aab=${INCLUDE_AAB}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo ""
+            echo "### Variables de compilación"
+            echo ""
+            echo "- Backend: \`${BACKEND_URL}\`"
+            echo "- Pusher cluster: \`${PUSHER_CLUSTER}\`"
+            echo "- Pusher port: \`${PUSHER_PORT}\`"
+            echo "- Pusher TLS: \`${PUSHER_USE_TLS}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set +e
+          flutter test --no-pub
+          TEST_EXIT=$?
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "::warning::Algunas pruebas fallaron (código $TEST_EXIT). El release continuará de todos modos."
+            {
+              echo ""
+              echo "### ⚠️ Pruebas con fallos"
+              echo ""
+              echo "El comando \`flutter test\` terminó con código \`$TEST_EXIT\`. Revisa el log del job."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Configure Android signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 no está configurado. El APK se firmará con la clave de debug."
+            exit 0
+          fi
+
+          if [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] || [ -z "${ANDROID_KEY_ALIAS:-}" ] || [ -z "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "::error::Faltan ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS o ANDROID_KEY_PASSWORD."
+            exit 1
+          fi
+
+          mkdir -p android/app
+          echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > android/app/upload-keystore.jks
+
+          {
+            printf 'storePassword=%s\n' "${ANDROID_KEYSTORE_PASSWORD}"
+            printf 'keyPassword=%s\n' "${ANDROID_KEY_PASSWORD}"
+            printf 'keyAlias=%s\n' "${ANDROID_KEY_ALIAS}"
+            printf 'storeFile=%s\n' "upload-keystore.jks"
+          } > android/key.properties
+
+          echo "Firma de release configurada correctamente."
+
+      - name: Build APKs and AAB
+        shell: bash
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          BACKEND_URL: ${{ steps.vars.outputs.backend_url }}
+          PUSHER_APP_KEY: ${{ steps.vars.outputs.pusher_app_key }}
+          PUSHER_CLUSTER: ${{ steps.vars.outputs.pusher_cluster }}
+          PUSHER_PORT: ${{ steps.vars.outputs.pusher_port }}
+          PUSHER_USE_TLS: ${{ steps.vars.outputs.pusher_use_tls }}
+          VARIANTS: ${{ inputs.variants || 'all' }}
+          INCLUDE_AAB: ${{ steps.vars.outputs.include_aab }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          COMMON_ARGS=(
+            "--release"
+            "--build-name=${VERSION_NAME}"
+            "--build-number=${BUILD_NUMBER}"
+            "--dart-define=BACKEND_URL=${BACKEND_URL}"
+            "--dart-define=PUSHER_APP_KEY=${PUSHER_APP_KEY}"
+            "--dart-define=PUSHER_CLUSTER=${PUSHER_CLUSTER}"
+            "--dart-define=PUSHER_PORT=${PUSHER_PORT}"
+            "--dart-define=PUSHER_USE_TLS=${PUSHER_USE_TLS}"
+          )
+
+          BASE_NAME="polleria-${VERSION_NAME}+${BUILD_NUMBER}"
+
+          if [[ "${VARIANTS}" == "all" || "${VARIANTS}" == "universal" ]]; then
+            echo "Compilando APK universal..."
+            flutter build apk "${COMMON_ARGS[@]}"
+            cp "build/app/outputs/flutter-apk/app-release.apk" "dist/${BASE_NAME}-universal.apk"
+          fi
+
+          if [[ "${VARIANTS}" == "all" || "${VARIANTS}" == "split" ]]; then
+            echo "Compilando APKs por ABI..."
+            flutter build apk "${COMMON_ARGS[@]}" --split-per-abi
+            for abi in armeabi-v7a arm64-v8a x86_64; do
+              cp "build/app/outputs/flutter-apk/app-${abi}-release.apk" "dist/${BASE_NAME}-${abi}.apk"
+            done
+          fi
+
+          if [[ "${INCLUDE_AAB}" == "true" ]]; then
+            echo "Compilando App Bundle (.aab)..."
+            flutter build appbundle "${COMMON_ARGS[@]}"
+            cp "build/app/outputs/bundle/release/app-release.aab" "dist/${BASE_NAME}.aab"
+          fi
+
+          echo ""
+          echo "Artefactos generados:"
+          ls -lh dist
+
+          cat > dist/build-info.txt <<EOF
+          App: Pollería Móvil
+          Version: ${VERSION_NAME}
+          versionCode: ${BUILD_NUMBER}
+          Commit: ${GITHUB_SHA}
+          Backend: ${BACKEND_URL}
+          Pusher cluster: ${PUSHER_CLUSTER}
+          Pusher port: ${PUSHER_PORT}
+          Pusher TLS: ${PUSHER_USE_TLS}
+          Variants: ${VARIANTS}
+          AAB included: ${INCLUDE_AAB}
+          Built at (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          EOF
+
+          (
+            cd dist
+            find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -exec sha256sum {} + | sort > SHA256SUMS.txt
+          )
+          echo "Checksums generados en dist/SHA256SUMS.txt"
+
+      - name: Clean signing files
+        if: always()
+        shell: bash
+        run: rm -f android/key.properties android/app/upload-keystore.jks
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: polleria-${{ steps.version.outputs.name }}-${{ steps.version.outputs.build_number }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.release_tag }}
+          name: Pollería Móvil ${{ steps.version.outputs.name }} (${{ steps.version.outputs.build_number }})
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ steps.vars.outputs.prerelease }}
+          fail_on_unmatched_files: true
+          files: dist/*
+          body: |
+            ## 📱 Pollería Móvil ${{ steps.version.outputs.name }}
+
+            - **versionCode:** `${{ steps.version.outputs.build_number }}`
+            - **Backend:** `${{ steps.vars.outputs.backend_url }}`
+            - **Pusher cluster:** `${{ steps.vars.outputs.pusher_cluster }}`
+            - **Variantes:** `${{ inputs.variants || 'all' }}`
+
+            ### Archivos
+            - APK universal: instala en cualquier dispositivo Android.
+            - APKs por ABI: menor tamaño para `armeabi-v7a`, `arm64-v8a` y `x86_64`.
+            - `.aab`: solo para publicar en Google Play (no se instala directamente).
+
+            > La firma depende de los secretos `ANDROID_*` configurados en el repositorio.

@@ -1,0 +1,11 @@
+# Copia este archivo como android/key.properties y completa los valores.
+# NO subas key.properties ni el keystore al repositorio.
+#
+# En GitHub Actions estos valores se generan automáticamente desde los secretos:
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#
+# storeFile puede ser una ruta relativa a android/app o una ruta absoluta.
+storePassword=CAMBIAR_PASSWORD_DEL_KEYSTORE
+keyPassword=CAMBIAR_PASSWORD_DE_LA_CLAVE
+keyAlias=upload
+storeFile=upload-keystore.jks

@@ -1,6 +1,7 @@
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
+#include <gio/gio.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -13,6 +14,50 @@ struct _MyApplication {
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+static void ensure_desktop_integration(const gchar* icon_path) {
+  if (icon_path == nullptr || !g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+    return;
+  }
+
+  const gchar* user_data_dir = g_get_user_data_dir();
+  if (user_data_dir == nullptr) {
+    return;
+  }
+
+  // 1. Ensure icon exists in ~/.local/share/icons/hicolor/256x256/apps/
+  g_autofree gchar* icon_dir = g_build_filename(user_data_dir, "icons", "hicolor", "256x256", "apps", nullptr);
+  g_mkdir_with_parents(icon_dir, 0755);
+  g_autofree gchar* target_icon = g_build_filename(icon_dir, APPLICATION_ID ".png", nullptr);
+  if (!g_file_test(target_icon, G_FILE_TEST_EXISTS)) {
+    g_autoptr(GFile) src = g_file_new_for_path(icon_path);
+    g_autoptr(GFile) dst = g_file_new_for_path(target_icon);
+    g_file_copy(src, dst, G_FILE_COPY_OVERWRITE, nullptr, nullptr, nullptr, nullptr);
+  }
+
+  // 2. Ensure .desktop file exists in ~/.local/share/applications/
+  g_autofree gchar* app_dir = g_build_filename(user_data_dir, "applications", nullptr);
+  g_mkdir_with_parents(app_dir, 0755);
+  g_autofree gchar* desktop_path = g_build_filename(app_dir, APPLICATION_ID ".desktop", nullptr);
+  if (!g_file_test(desktop_path, G_FILE_TEST_EXISTS)) {
+    g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
+    if (exe_path != nullptr) {
+      g_autofree gchar* desktop_content = g_strdup_printf(
+          "[Desktop Entry]\n"
+          "Version=1.0\n"
+          "Type=Application\n"
+          "Name=Pollería El Gigante\n"
+          "Comment=Sistema Móvil de Pedidos - Pollería El Gigante\n"
+          "Exec=%s\n"
+          "Icon=%s\n"
+          "Terminal=false\n"
+          "Categories=Utility;Office;\n"
+          "StartupWMClass=%s\n",
+          exe_path, target_icon, APPLICATION_ID);
+      g_file_set_contents(desktop_path, desktop_content, -1, nullptr);
+    }
+  }
+}
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
@@ -57,6 +102,18 @@ static void my_application_activate(GApplication* application) {
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
       project, self->dart_entrypoint_arguments);
+
+  const gchar* assets_path = fl_dart_project_get_assets_path(project);
+  g_autofree gchar* icon_path =
+      g_build_filename(assets_path, "assets", "images", "app_icon.png", nullptr);
+
+  ensure_desktop_integration(icon_path);
+
+  gtk_window_set_default_icon_name(APPLICATION_ID);
+  gtk_window_set_icon_name(window, APPLICATION_ID);
+  if (g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+    gtk_window_set_icon_from_file(window, icon_path, nullptr);
+  }
 
   FlView* view = fl_view_new(project);
   GdkRGBA background_color;

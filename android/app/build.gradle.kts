@@ -1,7 +1,36 @@
+import java.io.File
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Lee las credenciales de firma desde android/key.properties (ver android/.gitignore).
+// En CI, el workflow genera este archivo a partir de los secretos de GitHub.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
+val keystoreStoreFile: File? = keystoreProperties.getProperty("storeFile")?.let { storeFilePath ->
+    if (File(storeFilePath).isAbsolute) File(storeFilePath) else file(storeFilePath)
+}
+
+val hasReleaseSigning = keystorePropertiesFile.exists() &&
+    keystoreStoreFile?.exists() == true &&
+    keystoreProperties.getProperty("storePassword") != null &&
+    keystoreProperties.getProperty("keyAlias") != null &&
+    keystoreProperties.getProperty("keyPassword") != null
+
+if (keystorePropertiesFile.exists() && !hasReleaseSigning) {
+    logger.warn(
+        "android/key.properties existe pero la firma de release está incompleta " +
+            "o el keystore no existe. Se usará la firma de debug."
+    )
 }
 
 android {
@@ -15,21 +44,33 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.polleria_movil"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            maybeCreate("release").apply {
+                storeFile = keystoreStoreFile
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Si no hay keystore configurado se usa la firma de debug para
+            // permitir compilaciones locales. En CI se configura la firma real.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

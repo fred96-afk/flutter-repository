@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Pollería El Gigante
+Comment=Sistema Móvil de Pedidos - Pollería El Gigante
+Exec=polleria_movil
+Icon=com.example.polleria_movil
+Terminal=false
+Categories=Utility;Office;
+StartupWMClass=com.example.polleria_movil
