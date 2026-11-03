@@ -260,16 +260,18 @@ class AppStorage {
   // ==========================================
 
   /// Obtiene los pedidos activos por mesa guardados en Hive
-  static Map<int, List<Map<String, dynamic>>>? getTableOrders() {
+  static Map<String, List<Map<String, dynamic>>>? getTableOrders() {
     final value = _box != null && _box!.isOpen
         ? _box!.get(keyTableOrders)
         : _memoryFallback[keyTableOrders];
     if (value is Map) {
-      final result = <int, List<Map<String, dynamic>>>{};
+      final result = <String, List<Map<String, dynamic>>>{};
       value.forEach((key, val) {
-        final tableNum = int.tryParse(key.toString());
-        if (tableNum != null && val is List) {
-          result[tableNum] = val.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        final tableNumber = key.toString().trim();
+        if (tableNumber.isNotEmpty && val is List) {
+          result[tableNumber] = val
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
         }
       });
       return result;
@@ -278,7 +280,9 @@ class AppStorage {
   }
 
   /// Guarda los pedidos pendientes de las mesas en Hive
-  static Future<void> setTableOrders(Map<int, List<Map<String, dynamic>>>? orders) async {
+  static Future<void> setTableOrders(
+    Map<String, List<Map<String, dynamic>>>? orders,
+  ) async {
     if (orders == null || orders.isEmpty) {
       _memoryFallback.remove(keyTableOrders);
       if (_box != null && _box!.isOpen) {
@@ -287,7 +291,7 @@ class AppStorage {
     } else {
       final storable = <String, dynamic>{};
       orders.forEach((table, items) {
-        storable[table.toString()] = items;
+        storable[table] = items;
       });
       _memoryFallback[keyTableOrders] = storable;
       if (_box != null && _box!.isOpen) {

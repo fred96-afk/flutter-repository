@@ -31,11 +31,27 @@ class RestaurantTableModel {
   String get displayName => name.isNotEmpty ? name : 'Mesa $number';
 
   /// Nombre de piso o sector legible para agrupar visualmente.
+  String get mapName {
+    switch (mapId) {
+      case 'terraza':
+        return 'Terraza Exterior';
+      case 'segundo-piso':
+        return 'Segundo Nivel VIP';
+      case 'salon-principal':
+        return 'Salón Principal';
+    }
+    final sector = location.split(' - ').first.trim();
+    return sector.isEmpty ? 'Salón Principal' : sector;
+  }
+
   String get sectorName {
     final lower = (location + mapId).toLowerCase();
-    if (lower.contains('terraza')) return 'Terraza';
-    if (lower.contains('segundo') || lower.contains('vip') || lower.contains('piso 2') || lower.contains('balcón')) {
-      return 'Segundo Piso / VIP';
+    if (lower.contains('terraza')) return 'Terraza Exterior';
+    if (lower.contains('segundo') ||
+        lower.contains('vip') ||
+        lower.contains('piso 2') ||
+        lower.contains('balcón')) {
+      return 'Segundo Nivel VIP';
     }
     return 'Salón Principal';
   }
@@ -53,7 +69,9 @@ class RestaurantTableModel {
           ? json['id'] as int
           : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       number: json['number']?.toString() ?? json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Mesa ${json['number'] ?? json['id'] ?? ''}',
+      name:
+          json['name']?.toString() ??
+          'Mesa ${json['number'] ?? json['id'] ?? ''}',
       chairs: json['chairs'] is int
           ? json['chairs'] as int
           : int.tryParse(json['chairs']?.toString() ?? '4') ?? 4,

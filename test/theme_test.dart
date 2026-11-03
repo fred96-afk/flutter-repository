@@ -76,7 +76,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open drawer
-      final scaffoldState = tester.firstState<ScaffoldState>(find.byType(Scaffold));
+      final scaffoldState = tester.firstState<ScaffoldState>(
+        find.byType(Scaffold),
+      );
       scaffoldState.openDrawer();
       await tester.pumpAndSettle();
 
@@ -93,13 +95,15 @@ void main() {
       expect(find.text('Activado'), findsOneWidget);
     });
 
-    testWidgets('OrderDetailScreen renders in light and dark mode', (tester) async {
+    testWidgets('OrderDetailScreen renders in light and dark mode', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.dark,
-          home: const OrderDetailScreen(tableNumber: 1),
+          home: const OrderDetailScreen(tableNumber: '1'),
         ),
       );
       await tester.pumpAndSettle();
@@ -124,13 +128,13 @@ void main() {
       expect(find.byType(ThemeToggleButton), findsOneWidget);
     });
 
-    testWidgets('TicketPrintScreen renders in light and dark mode', (tester) async {
+    testWidgets('TicketPrintScreen renders in light and dark mode', (
+      tester,
+    ) async {
       final order = CompletedOrder(
         ticketNumber: 'T-001',
-        tableNumber: 5,
-        items: [
-          OrderItem(product: RestaurantStore.menu.first, quantity: 2),
-        ],
+        tableNumber: '5',
+        items: [OrderItem(product: RestaurantStore.menu.first, quantity: 2)],
         completedAt: DateTime(2026, 10, 20, 14, 30),
       );
 

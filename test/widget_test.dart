@@ -10,7 +10,7 @@ void main() {
     ThemeController.instance.setThemeMode(ThemeMode.light);
   });
 
-  testWidgets('El usuario inicia sesión y ve las 18 mesas', (
+  testWidgets('El usuario inicia sesión y ve las mesas del local', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const App());
@@ -23,10 +23,10 @@ void main() {
 
     expect(find.text('Mesa 1'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Mesa 18'),
+      find.text('Salón Balcón B'),
       300,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Mesa 18'), findsOneWidget);
+    expect(find.text('Salón Balcón B'), findsOneWidget);
   });
 }

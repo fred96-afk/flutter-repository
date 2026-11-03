@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:polleria_movil/api/models/table_models.dart';
 import 'package:polleria_movil/data/restaurant_store.dart';
 import 'package:polleria_movil/screens/app_drawer.dart';
 import 'package:polleria_movil/screens/order_detail.dart';
@@ -7,8 +8,6 @@ import 'package:polleria_movil/widgets/theme_toggle_button.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
-
-  static const _tableCount = 18;
 
   @override
   State<Home> createState() => _HomeState();
@@ -38,7 +37,10 @@ class _HomeState extends State<Home> {
           AnimatedBuilder(
             animation: store,
             builder: (context, _) {
-              final isLoading = store.isLoadingOrders || store.isLoadingMenu;
+              final isLoading =
+                  store.isLoadingOrders ||
+                  store.isLoadingMenu ||
+                  store.isLoadingTables;
               return IconButton(
                 tooltip: 'Sincronizar',
                 icon: isLoading
@@ -53,12 +55,15 @@ class _HomeState extends State<Home> {
                     : () async {
                         await store.loadAllFromApi();
                         if (context.mounted) {
-                          final activeCount =
-                              store.tablesWithOrders(attended: false).length;
+                          final activeCount = store
+                              .tablesWithOrders(attended: false)
+                              .length;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Sincronizado: $activeCount mesa(s) activa(s), ${RestaurantStore.menu.length} producto(s)',
+                                'Sincronizado: ${store.tables.length} mesas, '
+                                '$activeCount mesa(s) activa(s), '
+                                '${RestaurantStore.menu.length} producto(s)',
                               ),
                               duration: const Duration(seconds: 2),
                             ),
@@ -99,6 +104,7 @@ class _HomeState extends State<Home> {
                     : constraints.maxWidth >= 600
                     ? 3
                     : 2;
+                final sectors = _groupTables(store.tables);
                 return RefreshIndicator(
                   onRefresh: () => store.loadAllFromApi(),
                   child: CustomScrollView(
@@ -115,19 +121,24 @@ class _HomeState extends State<Home> {
                                   Expanded(
                                     child: Text(
                                       'Mesas',
-                                      style: theme.textTheme.headlineMedium?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.headlineMedium
+                                          ?.copyWith(
+                                            color: colorScheme.onSurface,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ),
-                                  if (store.isLoadingOrders || store.isLoadingMenu)
+                                  if (store.isLoadingOrders ||
+                                      store.isLoadingMenu ||
+                                      store.isLoadingTables)
                                     Row(
                                       children: [
                                         const SizedBox(
                                           width: 14,
                                           height: 14,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
@@ -143,7 +154,9 @@ class _HomeState extends State<Home> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${Home._tableCount} mesas · 4 personas por mesa · ${RestaurantStore.menu.length} productos en menú',
+                                '${store.tables.length} mesas · '
+                                '${store.totalChairs} sillas · '
+                                '${RestaurantStore.menu.length} productos en menú',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -152,22 +165,32 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                       ),
-                      _floorHeader(context, 'Piso 1', 'Mesas 1 a 10'),
-                      _tableGrid(
-                        context,
-                        store: store,
-                        firstTable: 1,
-                        count: 10,
-                        columns: columns,
-                      ),
-                      _floorHeader(context, 'Piso 2', 'Mesas 11 a 18'),
-                      _tableGrid(
-                        context,
-                        store: store,
-                        firstTable: 11,
-                        count: 8,
-                        columns: columns,
-                      ),
+                      if (sectors.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Text(
+                              'No hay mesas disponibles.',
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        for (final sector in sectors) ...[
+                          _sectorHeader(
+                            context,
+                            sector.name,
+                            '${sector.tables.length} mesas',
+                          ),
+                          _tableGrid(
+                            context,
+                            store: store,
+                            tables: sector.tables,
+                            columns: columns,
+                          ),
+                        ],
                       const SliverToBoxAdapter(child: SizedBox(height: 16)),
                     ],
                   ),
@@ -180,7 +203,29 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _floorHeader(BuildContext context, String title, String range) {
+  /// Agrupa las mesas por sector en el mismo orden que el mapa del frontend web.
+  List<_TableSector> _groupTables(List<RestaurantTableModel> tables) {
+    final bySector = <String, List<RestaurantTableModel>>{};
+    for (final table in tables) {
+      bySector.putIfAbsent(table.mapId, () => []).add(table);
+    }
+
+    const preferredOrder = ['salon-principal', 'terraza', 'segundo-piso'];
+    final sectorIds = <String>[
+      ...preferredOrder.where(bySector.containsKey),
+      ...bySector.keys.where((id) => !preferredOrder.contains(id)),
+    ];
+
+    return [
+      for (final id in sectorIds)
+        _TableSector(
+          name: bySector[id]!.first.mapName,
+          tables: (bySector[id]!..sort((a, b) => a.id.compareTo(b.id))),
+        ),
+    ];
+  }
+
+  Widget _sectorHeader(BuildContext context, String title, String range) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -214,43 +259,49 @@ class _HomeState extends State<Home> {
   Widget _tableGrid(
     BuildContext context, {
     required RestaurantStore store,
-    required int firstTable,
-    required int count,
+    required List<RestaurantTableModel> tables,
     required int columns,
   }) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
         delegate: SliverChildBuilderDelegate((context, index) {
-          final tableNumber = firstTable + index;
+          final table = tables[index];
           return _TableCard(
-            tableNumber: tableNumber,
-            occupied: store.isOccupied(tableNumber),
-            itemCount: store.itemCountFor(tableNumber),
-            total: store.totalFor(tableNumber),
-            remoteOrder: store.remoteOrderFor(tableNumber),
+            table: table,
+            occupied: store.isOccupied(table.number),
+            itemCount: store.itemCountFor(table.number),
+            total: store.totalFor(table.number),
+            remoteOrder: store.remoteOrderFor(table.number),
             onTap: () => Navigator.push<void>(
               context,
               MaterialPageRoute(
-                builder: (_) => OrderDetailScreen(tableNumber: tableNumber),
+                builder: (_) => OrderDetailScreen(tableNumber: table.number),
               ),
             ),
           );
-        }, childCount: count),
+        }, childCount: tables.length),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.12,
+          childAspectRatio: 1.02,
         ),
       ),
     );
   }
 }
 
+class _TableSector {
+  const _TableSector({required this.name, required this.tables});
+
+  final String name;
+  final List<RestaurantTableModel> tables;
+}
+
 class _TableCard extends StatelessWidget {
   const _TableCard({
-    required this.tableNumber,
+    required this.table,
     required this.occupied,
     required this.itemCount,
     required this.total,
@@ -258,7 +309,7 @@ class _TableCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final int tableNumber;
+  final RestaurantTableModel table;
   final bool occupied;
   final int itemCount;
   final double total;
@@ -280,8 +331,8 @@ class _TableCard extends StatelessWidget {
 
     final badgeText = occupied
         ? (remoteOrder != null && remoteOrder.status != null
-            ? remoteOrder.status.toString().toUpperCase()
-            : 'OCUPADO')
+              ? remoteOrder.status.toString().toUpperCase()
+              : 'OCUPADO')
         : 'LIBRE';
 
     return Card(
@@ -306,7 +357,7 @@ class _TableCard extends StatelessWidget {
                   Icon(Icons.table_restaurant, color: color, size: 27),
                   const SizedBox(height: 5),
                   Text(
-                    'Mesa $tableNumber',
+                    table.displayName,
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     style: TextStyle(
@@ -319,15 +370,24 @@ class _TableCard extends StatelessWidget {
                   Text(
                     occupied
                         ? '$itemCount prod. · S/ ${total.toStringAsFixed(2)}'
-                        : '4 personas',
+                        : '${table.chairs} personas',
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: occupied
-                          ? color
-                          : theme.colorScheme.onSurface,
+                      color: occupied ? color : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    table.location,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 5),

@@ -9,12 +9,10 @@ void main() {
     WidgetTester tester,
   ) async {
     final store = RestaurantStore.instance;
-    store.clearTable(1);
+    store.clearTable('1');
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: OrderDetailScreen(tableNumber: 1),
-      ),
+      const MaterialApp(home: OrderDetailScreen(tableNumber: '1')),
     );
 
     // Initial state: table is empty
@@ -69,7 +67,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final store = RestaurantStore.instance;
-    store.clearTable(1);
+    store.clearTable('1');
     store.setCustomMenu([
       const MenuProduct(
         id: '99',
@@ -83,9 +81,7 @@ void main() {
     ]);
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: OrderDetailScreen(tableNumber: 1),
-      ),
+      const MaterialApp(home: OrderDetailScreen(tableNumber: '1')),
     );
 
     // Open menu modal
@@ -118,41 +114,39 @@ void main() {
     store.resetMenu();
   });
 
-  testWidgets('Ticket displays full product name and description without collapsing', (
-    WidgetTester tester,
-  ) async {
-    const product = MenuProduct(
-      id: '1',
-      name: 'Pollo a la Brasa (Entero) con cremas',
-      price: 65.0,
-      icon: Icons.restaurant,
-      category: MenuCategory.polloALaBrasa,
-      description: 'Pollo entero marinado con papas fritas y ensalada clásica',
-    );
+  testWidgets(
+    'Ticket displays full product name and description without collapsing',
+    (WidgetTester tester) async {
+      const product = MenuProduct(
+        id: '1',
+        name: 'Pollo a la Brasa (Entero) con cremas',
+        price: 65.0,
+        icon: Icons.restaurant,
+        category: MenuCategory.polloALaBrasa,
+        description:
+            'Pollo entero marinado con papas fritas y ensalada clásica',
+      );
 
-    final order = CompletedOrder(
-      ticketNumber: 'TICK-101',
-      tableNumber: 3,
-      items: [
-        OrderItem(product: product, quantity: 2),
-      ],
-      completedAt: DateTime(2026, 10, 22, 14, 0),
-    );
+      final order = CompletedOrder(
+        ticketNumber: 'TICK-101',
+        tableNumber: '3',
+        items: [OrderItem(product: product, quantity: 2)],
+        completedAt: DateTime(2026, 10, 22, 14, 0),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TicketPrintScreen(order: order),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(home: TicketPrintScreen(order: order)),
+      );
+      await tester.pumpAndSettle();
 
-    // Verify product name and full description are displayed without truncation
-    expect(find.text('Pollo a la Brasa (Entero) con cremas'), findsOneWidget);
-    expect(
-      find.text('Pollo entero marinado con papas fritas y ensalada clásica'),
-      findsOneWidget,
-    );
-    expect(find.text('2×'), findsOneWidget);
-    expect(find.text('S/ 130.00'), findsWidgets);
-  });
+      // Verify product name and full description are displayed without truncation
+      expect(find.text('Pollo a la Brasa (Entero) con cremas'), findsOneWidget);
+      expect(
+        find.text('Pollo entero marinado con papas fritas y ensalada clásica'),
+        findsOneWidget,
+      );
+      expect(find.text('2×'), findsOneWidget);
+      expect(find.text('S/ 130.00'), findsWidgets);
+    },
+  );
 }

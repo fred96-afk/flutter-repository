@@ -19,7 +19,7 @@ void main() {
         timestamp: now,
         type: NotificationType.newOrder,
         orderId: 10,
-        tableNumber: 4,
+        tableNumber: '4',
         amount: 65.0,
         customerName: 'Augusto',
         status: 'Pending',
@@ -31,7 +31,7 @@ void main() {
       expect(json['title'], '🍗 ¡Nuevo Pedido #10!');
       expect(json['type'], 'newOrder');
       expect(json['orderId'], 10);
-      expect(json['tableNumber'], 4);
+      expect(json['tableNumber'], '4');
       expect(json['amount'], 65.0);
 
       final fromJson = AppNotification.fromJson(json);
@@ -39,7 +39,7 @@ void main() {
       expect(fromJson.title, '🍗 ¡Nuevo Pedido #10!');
       expect(fromJson.type, NotificationType.newOrder);
       expect(fromJson.orderId, 10);
-      expect(fromJson.tableNumber, 4);
+      expect(fromJson.tableNumber, '4');
       expect(fromJson.amount, 65.0);
       expect(fromJson.isRead, isFalse);
     });
@@ -60,17 +60,50 @@ void main() {
     });
 
     test('NotificationType maps event names correctly', () {
-      expect(NotificationType.fromEventName('new-order'), NotificationType.newOrder);
-      expect(NotificationType.fromEventName('order-created'), NotificationType.newOrder);
-      expect(NotificationType.fromEventName('status-updated'), NotificationType.statusUpdated);
-      expect(NotificationType.fromEventName('payment-updated'), NotificationType.paymentUpdated);
-      expect(NotificationType.fromEventName('order-accepted'), NotificationType.orderAccepted);
-      expect(NotificationType.fromEventName('call-waiter'), NotificationType.callWaiter);
-      expect(NotificationType.fromEventName('request-bill'), NotificationType.requestBill);
-      expect(NotificationType.fromEventName('table-alert'), NotificationType.tableAlert);
-      expect(NotificationType.fromEventName('report-ready'), NotificationType.reportReady);
-      expect(NotificationType.fromEventName('report-failed'), NotificationType.reportFailed);
-      expect(NotificationType.fromEventName('unknown-event'), NotificationType.general);
+      expect(
+        NotificationType.fromEventName('new-order'),
+        NotificationType.newOrder,
+      );
+      expect(
+        NotificationType.fromEventName('order-created'),
+        NotificationType.newOrder,
+      );
+      expect(
+        NotificationType.fromEventName('status-updated'),
+        NotificationType.statusUpdated,
+      );
+      expect(
+        NotificationType.fromEventName('payment-updated'),
+        NotificationType.paymentUpdated,
+      );
+      expect(
+        NotificationType.fromEventName('order-accepted'),
+        NotificationType.orderAccepted,
+      );
+      expect(
+        NotificationType.fromEventName('call-waiter'),
+        NotificationType.callWaiter,
+      );
+      expect(
+        NotificationType.fromEventName('request-bill'),
+        NotificationType.requestBill,
+      );
+      expect(
+        NotificationType.fromEventName('table-alert'),
+        NotificationType.tableAlert,
+      );
+      expect(
+        NotificationType.fromEventName('report-ready'),
+        NotificationType.reportReady,
+      );
+      expect(
+        NotificationType.fromEventName('report-failed'),
+        NotificationType.reportFailed,
+      );
+      expect(
+        NotificationType.fromEventName('unknown-event'),
+        NotificationType.general,
+      );
     });
   });
 
@@ -101,7 +134,7 @@ void main() {
       final notif = pusher.notifications.first;
       expect(notif.type, NotificationType.newOrder);
       expect(notif.orderId, 105);
-      expect(notif.tableNumber, 3);
+      expect(notif.tableNumber, '3');
       expect(notif.title, contains('¡Nuevo Pedido #105!'));
       expect(notif.message, contains('Juan Pérez'));
       expect(notif.message, contains('85.50'));
@@ -142,9 +175,9 @@ void main() {
 
       expect(pusher.notifications.length, 2);
       expect(pusher.notifications[0].type, NotificationType.requestBill);
-      expect(pusher.notifications[0].tableNumber, 7);
+      expect(pusher.notifications[0].tableNumber, '7');
       expect(pusher.notifications[1].type, NotificationType.callWaiter);
-      expect(pusher.notifications[1].tableNumber, 7);
+      expect(pusher.notifications[1].tableNumber, '7');
       expect(pusher.unreadCount, 2);
     });
 

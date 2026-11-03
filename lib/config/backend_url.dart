@@ -15,8 +15,12 @@ import 'package:flutter/foundation.dart';
 /// ============================================================================
 
 /// URL base predeterminada que utiliza la aplicación en el código.
-/// Cambia esta constante si deseas conectar la app a otro servidor por defecto.
-const String defaultBackendUrl = 'https://localhost:7200';
+/// Es la misma que usa el frontend web en
+/// `polleriafront/src/enviroments/enviroments.development.ts`.
+///
+/// Para desarrollo local puedes sobrescribirla con:
+/// `--dart-define=BACKEND_URL=https://localhost:7200`
+const String defaultBackendUrl = 'https://polleriaback1.onrender.com';
 
 /// URL base del backend activa en compilación (permite sobrescribir con `--dart-define`).
 const String backendBaseUrl = String.fromEnvironment(

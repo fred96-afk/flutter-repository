@@ -38,12 +38,12 @@ class OrdersScreen extends StatelessWidget {
                 : () async {
                     await store.loadOrdersFromApi();
                     if (context.mounted) {
-                      final count = store.tablesWithOrders(attended: attended).length;
+                      final count = store
+                          .tablesWithOrders(attended: attended)
+                          .length;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            '$count pedido(s) sincronizado(s)',
-                          ),
+                          content: Text('$count pedido(s) sincronizado(s)'),
                           duration: const Duration(seconds: 2),
                         ),
                       );
@@ -95,7 +95,9 @@ class OrdersScreen extends StatelessWidget {
                             Icon(
                               attended ? Icons.task_alt : Icons.receipt_long,
                               size: 72,
-                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -134,60 +136,66 @@ class OrdersScreen extends StatelessWidget {
               itemCount: rows.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-              final row = rows[index];
-              final completedOrder = row.completedOrder;
-              return Card(
-                color: theme.cardColor,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: colorScheme.primaryContainer,
-                    foregroundColor: colorScheme.onPrimaryContainer,
-                    child: Text('${row.tableNumber}'),
-                  ),
-                  title: Text(
-                    'Mesa ${row.tableNumber}',
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
+                final row = rows[index];
+                final completedOrder = row.completedOrder;
+                return Card(
+                  color: theme.cardColor,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: colorScheme.primaryContainer,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      child: Text(row.tableNumber),
                     ),
-                  ),
-                  subtitle: Text(
-                    '${row.itemCount} productos · S/ ${row.total.toStringAsFixed(2)}'
-                    '${completedOrder == null ? '' : ' · Ticket generado'}',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                  onTap: completedOrder == null
-                      ? () => Navigator.push<void>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                OrderDetailScreen(tableNumber: row.tableNumber),
+                    title: Text(
+                      store.displayNameFor(row.tableNumber),
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${row.itemCount} productos · S/ ${row.total.toStringAsFixed(2)}'
+                      '${completedOrder == null ? '' : ' · Ticket generado'}',
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
+                    ),
+                    onTap: completedOrder == null
+                        ? () => Navigator.push<void>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => OrderDetailScreen(
+                                tableNumber: row.tableNumber,
+                              ),
+                            ),
+                          )
+                        : () => _showCompletedOrder(context, completedOrder),
+                    trailing: completedOrder != null
+                        ? Icon(
+                            Icons.receipt_long,
+                            color: isDark
+                                ? const Color(0xFF48B383)
+                                : Colors.green,
+                          )
+                        : attended
+                        ? Icon(
+                            Icons.task_alt,
+                            color: isDark
+                                ? const Color(0xFF48B383)
+                                : Colors.green,
+                          )
+                        : IconButton(
+                            tooltip: 'Marcar como atendido',
+                            onPressed: () =>
+                                store.markAttended(row.tableNumber),
+                            icon: Icon(
+                              Icons.check_circle_outline,
+                              color: colorScheme.primary,
+                            ),
                           ),
-                        )
-                      : () => _showCompletedOrder(context, completedOrder),
-                  trailing: completedOrder != null
-                      ? Icon(
-                          Icons.receipt_long,
-                          color: isDark ? const Color(0xFF48B383) : Colors.green,
-                        )
-                      : attended
-                      ? Icon(
-                          Icons.task_alt,
-                          color: isDark ? const Color(0xFF48B383) : Colors.green,
-                        )
-                      : IconButton(
-                          tooltip: 'Marcar como atendido',
-                          onPressed: () => store.markAttended(row.tableNumber),
-                          icon: Icon(
-                            Icons.check_circle_outline,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                ),
-              );
-            },
-          ),
-        );
+                  ),
+                );
+              },
+            ),
+          );
         },
       ),
     );
@@ -200,7 +208,8 @@ class OrdersScreen extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: theme.dialogTheme.backgroundColor ?? colorScheme.surface,
+        backgroundColor:
+            theme.dialogTheme.backgroundColor ?? colorScheme.surface,
         title: Text(
           'Pedido atendido',
           style: TextStyle(color: colorScheme.onSurface),
@@ -250,7 +259,9 @@ class OrdersScreen extends StatelessWidget {
                                 ),
                               ),
                               if (item.product.description != null &&
-                                  item.product.description!.trim().isNotEmpty) ...[
+                                  item.product.description!
+                                      .trim()
+                                      .isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   item.product.description!,
@@ -321,7 +332,7 @@ class _OrderRow {
     this.completedOrder,
   });
 
-  final int tableNumber;
+  final String tableNumber;
   final int itemCount;
   final double total;
   final CompletedOrder? completedOrder;

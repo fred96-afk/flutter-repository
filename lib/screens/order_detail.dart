@@ -6,7 +6,7 @@ import 'package:polleria_movil/widgets/theme_toggle_button.dart';
 class OrderDetailScreen extends StatelessWidget {
   const OrderDetailScreen({super.key, required this.tableNumber});
 
-  final int tableNumber;
+  final String tableNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +18,8 @@ class OrderDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Pedido · Mesa $tableNumber'),
-        actions: const [
-          ThemeToggleButton(),
-        ],
+        title: Text('Pedido · ${store.displayNameFor(tableNumber)}'),
+        actions: const [ThemeToggleButton()],
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -74,7 +72,10 @@ class OrderDetailScreen extends StatelessWidget {
                     if (remoteOrder != null) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? const Color(0xFF2C2422)
@@ -96,7 +97,7 @@ class OrderDetailScreen extends StatelessWidget {
                               child: Text(
                                 'Pedido #${remoteOrder.id} · '
                                 'Estado: ${remoteOrder.status ?? 'Activo'} · '
-                                'Cliente: ${remoteOrder.customerName ?? 'Mesa $tableNumber'}',
+                                'Cliente: ${remoteOrder.customerName ?? store.displayNameFor(tableNumber)}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -139,15 +140,14 @@ class OrderDetailScreen extends StatelessWidget {
                       Expanded(
                         child: ListView.separated(
                           itemCount: items.length,
-                          separatorBuilder: (_, _) => Divider(
-                            height: 1,
-                            color: theme.dividerColor,
-                          ),
+                          separatorBuilder: (_, _) =>
+                              Divider(height: 1, color: theme.dividerColor),
                           itemBuilder: (context, index) {
                             final item = items[index];
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
-                              isThreeLine: item.product.description != null &&
+                              isThreeLine:
+                                  item.product.description != null &&
                                   item.product.description!.trim().isNotEmpty,
                               leading: CircleAvatar(
                                 backgroundColor: colorScheme.primaryContainer,
@@ -166,7 +166,9 @@ class OrderDetailScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (item.product.description != null &&
-                                      item.product.description!.trim().isNotEmpty) ...[
+                                      item.product.description!
+                                          .trim()
+                                          .isNotEmpty) ...[
                                     Text(
                                       item.product.description!,
                                       softWrap: true,
@@ -285,7 +287,9 @@ class OrderDetailScreen extends StatelessWidget {
                             side: BorderSide(
                               color: hasOrder
                                   ? colorScheme.primary
-                                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                                  : colorScheme.onSurfaceVariant.withValues(
+                                      alpha: 0.3,
+                                    ),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
@@ -299,9 +303,8 @@ class OrderDetailScreen extends StatelessWidget {
                         child: FilledButton.icon(
                           onPressed: hasOrder
                               ? () async {
-                                  final order = await store.completeOrderForTicket(
-                                    tableNumber,
-                                  );
+                                  final order = await store
+                                      .completeOrderForTicket(tableNumber);
                                   if (order != null && context.mounted) {
                                     _showTicket(context, order);
                                   }
@@ -339,7 +342,8 @@ class OrderDetailScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: theme.bottomSheetTheme.backgroundColor ?? colorScheme.surface,
+      backgroundColor:
+          theme.bottomSheetTheme.backgroundColor ?? colorScheme.surface,
       builder: (context) {
         MenuCategory? selectedCategory;
         String searchQuery = '';
@@ -358,13 +362,15 @@ class OrderDetailScreen extends StatelessWidget {
 
             final allProducts = RestaurantStore.menu;
             final products = allProducts.where((product) {
-              if (selectedCategory != null && product.category != selectedCategory) {
+              if (selectedCategory != null &&
+                  product.category != selectedCategory) {
                 return false;
               }
               if (searchQuery.isNotEmpty) {
                 final query = searchQuery.toLowerCase();
                 final nameMatches = product.name.toLowerCase().contains(query);
-                final descMatches = product.description?.toLowerCase().contains(query) ?? false;
+                final descMatches =
+                    product.description?.toLowerCase().contains(query) ?? false;
                 return nameMatches || descMatches;
               }
               return true;
@@ -384,7 +390,7 @@ class OrderDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Menú · Mesa $tableNumber',
+                                'Menú · ${store.displayNameFor(tableNumber)}',
                                 style: theme.textTheme.titleLarge?.copyWith(
                                   color: colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
@@ -411,7 +417,9 @@ class OrderDetailScreen extends StatelessWidget {
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : Icon(Icons.sync, color: colorScheme.onSurface),
                         ),
@@ -424,7 +432,10 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Buscar plato o bebida...',
@@ -461,19 +472,19 @@ class OrderDetailScreen extends StatelessWidget {
                       items: [
                         DropdownMenuItem<MenuCategory?>(
                           value: null,
-                          child: Text('Todas las categorías (${allProducts.length})'),
+                          child: Text(
+                            'Todas las categorías (${allProducts.length})',
+                          ),
                         ),
-                        ...MenuCategory.values.map(
-                          (category) {
-                            final count = allProducts
-                                .where((p) => p.category == category)
-                                .length;
-                            return DropdownMenuItem<MenuCategory?>(
-                              value: category,
-                              child: Text('${category.label} ($count)'),
-                            );
-                          },
-                        ),
+                        ...MenuCategory.values.map((category) {
+                          final count = allProducts
+                              .where((p) => p.category == category)
+                              .length;
+                          return DropdownMenuItem<MenuCategory?>(
+                            value: category,
+                            child: Text('${category.label} ($count)'),
+                          );
+                        }),
                       ],
                       onChanged: (category) {
                         setSheetState(() => selectedCategory = category);
@@ -483,13 +494,23 @@ class OrderDetailScreen extends StatelessWidget {
                   if (lastActionMessage != null)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E3A2B) : const Color(0xFFE8F5E9),
+                        color: isDark
+                            ? const Color(0xFF1E3A2B)
+                            : const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF48B383) : Colors.green,
+                          color: isDark
+                              ? const Color(0xFF48B383)
+                              : Colors.green,
                         ),
                       ),
                       child: Row(
@@ -497,7 +518,9 @@ class OrderDetailScreen extends StatelessWidget {
                           Icon(
                             Icons.check_circle,
                             size: 16,
-                            color: isDark ? const Color(0xFF48B383) : Colors.green,
+                            color: isDark
+                                ? const Color(0xFF48B383)
+                                : Colors.green,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -506,7 +529,9 @@ class OrderDetailScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF1B5E20),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1B5E20),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -538,12 +563,16 @@ class OrderDetailScreen extends StatelessWidget {
                             Icon(
                               Icons.search_off,
                               size: 48,
-                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'No se encontraron productos',
-                              style: TextStyle(color: colorScheme.onSurfaceVariant),
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -557,7 +586,8 @@ class OrderDetailScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final product = products[index];
                           final img = product.rawProduct?.image;
-                          final hasNetImg = img != null && img.startsWith('http');
+                          final hasNetImg =
+                              img != null && img.startsWith('http');
                           final qty = getQty(product.id);
                           final isAdded = qty > 0;
 
@@ -569,30 +599,47 @@ class OrderDetailScreen extends StatelessWidget {
                                     width: 44,
                                     height: 44,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        Icon(product.icon, color: colorScheme.primary),
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          product.icon,
+                                          color: colorScheme.primary,
+                                        ),
                                   ),
                                 )
                               : CircleAvatar(
-                                  backgroundColor:
-                                      colorScheme.primaryContainer.withValues(alpha: 0.4),
-                                  child: Icon(product.icon, color: colorScheme.primary),
+                                  backgroundColor: colorScheme.primaryContainer
+                                      .withValues(alpha: 0.4),
+                                  child: Icon(
+                                    product.icon,
+                                    color: colorScheme.primary,
+                                  ),
                                 );
 
-                          final isExpanded = expandedProductIds.contains(product.id);
+                          final isExpanded = expandedProductIds.contains(
+                            product.id,
+                          );
 
                           return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 5,
+                            ),
                             elevation: isAdded ? 1.5 : 0,
                             color: isAdded
                                 ? (isDark
-                                    ? colorScheme.primary.withValues(alpha: 0.15)
-                                    : colorScheme.primary.withValues(alpha: 0.08))
+                                      ? colorScheme.primary.withValues(
+                                          alpha: 0.15,
+                                        )
+                                      : colorScheme.primary.withValues(
+                                          alpha: 0.08,
+                                        ))
                                 : theme.cardColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
-                                color: isAdded ? colorScheme.primary : theme.dividerColor,
+                                color: isAdded
+                                    ? colorScheme.primary
+                                    : theme.dividerColor,
                                 width: isAdded ? 1.8 : 1,
                               ),
                             ),
@@ -605,7 +652,9 @@ class OrderDetailScreen extends StatelessWidget {
                                     isLabelVisible: isAdded,
                                     label: Text(
                                       '$qty',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     backgroundColor: colorScheme.primary,
                                     child: leadingWidget,
@@ -613,31 +662,38 @@ class OrderDetailScreen extends StatelessWidget {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
                                               child: Text(
                                                 product.name,
                                                 style: TextStyle(
                                                   color: colorScheme.onSurface,
-                                                  fontWeight: isAdded ? FontWeight.bold : FontWeight.w600,
+                                                  fontWeight: isAdded
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w600,
                                                   fontSize: 14,
                                                 ),
                                               ),
                                             ),
-                                            if (product.rawProduct?.isOnSale == true) ...[
+                                            if (product.rawProduct?.isOnSale ==
+                                                true) ...[
                                               const SizedBox(width: 6),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.redAccent,
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: const Text(
                                                   'OFERTA',
@@ -652,54 +708,80 @@ class OrderDetailScreen extends StatelessWidget {
                                           ],
                                         ),
                                         if (product.description != null &&
-                                            product.description!.trim().isNotEmpty) ...[
+                                            product.description!
+                                                .trim()
+                                                .isNotEmpty) ...[
                                           const SizedBox(height: 4),
                                           InkWell(
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                             onTap: () {
                                               setSheetState(() {
                                                 if (isExpanded) {
-                                                  expandedProductIds.remove(product.id);
+                                                  expandedProductIds.remove(
+                                                    product.id,
+                                                  );
                                                 } else {
-                                                  expandedProductIds.add(product.id);
+                                                  expandedProductIds.add(
+                                                    product.id,
+                                                  );
                                                 }
                                               });
                                             },
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   product.description!,
-                                                  maxLines: isExpanded ? null : 2,
+                                                  maxLines: isExpanded
+                                                      ? null
+                                                      : 2,
                                                   overflow: isExpanded
                                                       ? TextOverflow.visible
                                                       : TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    color: colorScheme.onSurfaceVariant,
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
                                                     height: 1.3,
                                                   ),
                                                 ),
-                                                if (product.description!.length > 40)
+                                                if (product
+                                                        .description!
+                                                        .length >
+                                                    40)
                                                   Padding(
-                                                    padding: const EdgeInsets.only(top: 2),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 2,
+                                                        ),
                                                     child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
                                                       children: [
                                                         Text(
-                                                          isExpanded ? 'Ver menos' : 'Ver más',
+                                                          isExpanded
+                                                              ? 'Ver menos'
+                                                              : 'Ver más',
                                                           style: TextStyle(
                                                             fontSize: 11,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: colorScheme.primary,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: colorScheme
+                                                                .primary,
                                                           ),
                                                         ),
                                                         Icon(
                                                           isExpanded
-                                                              ? Icons.keyboard_arrow_up
-                                                              : Icons.keyboard_arrow_down,
+                                                              ? Icons
+                                                                    .keyboard_arrow_up
+                                                              : Icons
+                                                                    .keyboard_arrow_down,
                                                           size: 14,
-                                                          color: colorScheme.primary,
+                                                          color: colorScheme
+                                                              .primary,
                                                         ),
                                                       ],
                                                     ),
@@ -712,7 +794,8 @@ class OrderDetailScreen extends StatelessWidget {
                                         Row(
                                           children: [
                                             Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
@@ -723,14 +806,24 @@ class OrderDetailScreen extends StatelessWidget {
                                                     color: colorScheme.primary,
                                                   ),
                                                 ),
-                                                if (product.rawProduct != null &&
-                                                    product.rawProduct!.basePrice > product.price)
+                                                if (product.rawProduct !=
+                                                        null &&
+                                                    product
+                                                            .rawProduct!
+                                                            .basePrice >
+                                                        product.price)
                                                   Text(
-                                                    _money(product.rawProduct!.basePrice),
+                                                    _money(
+                                                      product
+                                                          .rawProduct!
+                                                          .basePrice,
+                                                    ),
                                                     style: TextStyle(
-                                                      decoration: TextDecoration.lineThrough,
+                                                      decoration: TextDecoration
+                                                          .lineThrough,
                                                       fontSize: 11,
-                                                      color: colorScheme.onSurfaceVariant,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
                                                     ),
                                                   ),
                                               ],
@@ -739,59 +832,98 @@ class OrderDetailScreen extends StatelessWidget {
                                             if (isAdded)
                                               Container(
                                                 decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF382C28) : const Color(0xFFF5EBE6),
-                                                  borderRadius: BorderRadius.circular(20),
+                                                  color: isDark
+                                                      ? const Color(0xFF382C28)
+                                                      : const Color(0xFFF5EBE6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
                                                   border: Border.all(
-                                                    color: colorScheme.primary.withValues(alpha: 0.5),
+                                                    color: colorScheme.primary
+                                                        .withValues(alpha: 0.5),
                                                   ),
                                                 ),
                                                 child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
                                                     IconButton(
-                                                      visualDensity: VisualDensity.compact,
+                                                      visualDensity:
+                                                          VisualDensity.compact,
                                                       iconSize: 18,
-                                                      tooltip: 'Quitar una unidad',
+                                                      tooltip:
+                                                          'Quitar una unidad',
                                                       onPressed: () {
                                                         setSheetState(() {
-                                                          store.removeOne(tableNumber, product.id);
-                                                          final newQty = getQty(product.id);
+                                                          store.removeOne(
+                                                            tableNumber,
+                                                            product.id,
+                                                          );
+                                                          final newQty = getQty(
+                                                            product.id,
+                                                          );
                                                           if (newQty > 0) {
-                                                            lastActionMessage = '${product.name} reducido a $newQty en Mesa $tableNumber';
+                                                            lastActionMessage =
+                                                                '${product.name} reducido a $newQty en ${store.displayNameFor(tableNumber)}';
                                                           } else {
-                                                            lastActionMessage = '${product.name} retirado de Mesa $tableNumber';
+                                                            lastActionMessage =
+                                                                '${product.name} retirado de ${store.displayNameFor(tableNumber)}';
                                                           }
                                                         });
                                                       },
-                                                      icon: Icon(Icons.remove, color: colorScheme.error),
+                                                      icon: Icon(
+                                                        Icons.remove,
+                                                        color:
+                                                            colorScheme.error,
+                                                      ),
                                                     ),
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 3,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: colorScheme.primary,
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        color:
+                                                            colorScheme.primary,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
                                                       ),
                                                       child: Text(
                                                         '$qty',
                                                         style: const TextStyle(
                                                           color: Colors.white,
-                                                          fontWeight: FontWeight.bold,
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                           fontSize: 13,
                                                         ),
                                                       ),
                                                     ),
                                                     IconButton(
-                                                      visualDensity: VisualDensity.compact,
+                                                      visualDensity:
+                                                          VisualDensity.compact,
                                                       iconSize: 18,
-                                                      tooltip: 'Agregar otra unidad',
+                                                      tooltip:
+                                                          'Agregar otra unidad',
                                                       onPressed: () {
                                                         setSheetState(() {
-                                                          store.addProduct(tableNumber, product);
-                                                          final newQty = getQty(product.id);
-                                                          lastActionMessage = '${product.name} ×$newQty en Mesa $tableNumber';
+                                                          store.addProduct(
+                                                            tableNumber,
+                                                            product,
+                                                          );
+                                                          final newQty = getQty(
+                                                            product.id,
+                                                          );
+                                                          lastActionMessage =
+                                                              '${product.name} ×$newQty en ${store.displayNameFor(tableNumber)}';
                                                         });
                                                       },
-                                                      icon: Icon(Icons.add, color: colorScheme.primary),
+                                                      icon: Icon(
+                                                        Icons.add,
+                                                        color:
+                                                            colorScheme.primary,
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -799,20 +931,37 @@ class OrderDetailScreen extends StatelessWidget {
                                             else
                                               FilledButton.tonalIcon(
                                                 style: FilledButton.styleFrom(
-                                                  visualDensity: VisualDensity.compact,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6,
+                                                      ),
                                                   shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
                                                   ),
                                                 ),
                                                 onPressed: () {
                                                   setSheetState(() {
-                                                    store.addProduct(tableNumber, product);
-                                                    final newQty = getQty(product.id);
-                                                    lastActionMessage = '${product.name} ×$newQty agregado a Mesa $tableNumber';
+                                                    store.addProduct(
+                                                      tableNumber,
+                                                      product,
+                                                    );
+                                                    final newQty = getQty(
+                                                      product.id,
+                                                    );
+                                                    lastActionMessage =
+                                                        '${product.name} ×$newQty agregado a ${store.displayNameFor(tableNumber)}';
                                                   });
                                                 },
-                                                icon: const Icon(Icons.add, size: 16),
+                                                icon: const Icon(
+                                                  Icons.add,
+                                                  size: 16,
+                                                ),
                                                 label: const Text('Agregar'),
                                               ),
                                           ],
@@ -831,7 +980,9 @@ class OrderDetailScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                     decoration: BoxDecoration(
                       color: theme.cardColor,
-                      border: Border(top: BorderSide(color: theme.dividerColor)),
+                      border: Border(
+                        top: BorderSide(color: theme.dividerColor),
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.06),
@@ -849,7 +1000,7 @@ class OrderDetailScreen extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '${store.itemCountFor(tableNumber)} productos en Mesa $tableNumber',
+                                '${store.itemCountFor(tableNumber)} productos en ${store.displayNameFor(tableNumber)}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
@@ -877,7 +1028,9 @@ class OrderDetailScreen extends StatelessWidget {
                               ),
                             ),
                             icon: const Icon(Icons.check, size: 18),
-                            label: Text('Listo (${store.itemCountFor(tableNumber)})'),
+                            label: Text(
+                              'Listo (${store.itemCountFor(tableNumber)})',
+                            ),
                           ),
                         ],
                       ),
@@ -900,7 +1053,8 @@ class OrderDetailScreen extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: theme.dialogTheme.backgroundColor ?? colorScheme.surface,
+        backgroundColor:
+            theme.dialogTheme.backgroundColor ?? colorScheme.surface,
         title: Row(
           children: [
             Icon(Icons.receipt_long, color: colorScheme.primary),
@@ -970,7 +1124,9 @@ class OrderDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               if (item.product.description != null &&
-                                  item.product.description!.trim().isNotEmpty) ...[
+                                  item.product.description!
+                                      .trim()
+                                      .isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   item.product.description!,
@@ -1061,7 +1217,8 @@ class OrderDetailScreen extends StatelessWidget {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: theme.dialogTheme.backgroundColor ?? colorScheme.surface,
+        backgroundColor:
+            theme.dialogTheme.backgroundColor ?? colorScheme.surface,
         title: Row(
           children: [
             Icon(Icons.soup_kitchen_outlined, color: colorScheme.primary),
@@ -1096,7 +1253,9 @@ class OrderDetailScreen extends StatelessWidget {
                   style: TextStyle(color: colorScheme.onSurface),
                 ),
                 Text(
-                  'MESA N.º $tableNumber',
+                  RestaurantStore.instance
+                      .displayNameFor(tableNumber)
+                      .toUpperCase(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -1144,7 +1303,9 @@ class OrderDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               if (item.product.description != null &&
-                                  item.product.description!.trim().isNotEmpty) ...[
+                                  item.product.description!
+                                      .trim()
+                                      .isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   item.product.description!,

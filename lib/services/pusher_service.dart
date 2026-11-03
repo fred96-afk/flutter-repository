@@ -335,11 +335,10 @@ class PusherService extends ChangeNotifier {
     );
   }
 
-  int? _parseTableNumber(dynamic value) {
+  String? _parseTableNumber(dynamic value) {
     if (value == null) return null;
-    if (value is int) return value;
-    final str = value.toString().replaceAll(RegExp(r'[^0-9]'), '').trim();
-    return int.tryParse(str);
+    final str = RestaurantStore.normalizeTableNumber(value.toString());
+    return str.isEmpty ? null : str;
   }
 
   /// Agrega una notificación a la lista, retroalimenta visualmente y notifica

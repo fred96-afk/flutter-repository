@@ -13,7 +13,9 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('hive_test_');
     Hive.init(tempDir.path);
-    testBox = await Hive.openBox<dynamic>('test_box_${DateTime.now().microsecondsSinceEpoch}');
+    testBox = await Hive.openBox<dynamic>(
+      'test_box_${DateTime.now().microsecondsSinceEpoch}',
+    );
     await AppStorage.initForTesting(testBox);
     ApiConfig.instance.clearAuth();
     ThemeController.instance.setThemeMode(ThemeMode.light, persist: false);
@@ -110,37 +112,63 @@ void main() {
       expect(ApiConfig.instance.baseUrl, customUrl);
     });
 
-    test('persists and restores user data, cached menu, and table orders in Hive', () async {
-      // 1. User data
-      final sampleUser = {'id': 1, 'name': 'Mozo Augusto', 'email': 'augusto@polleria.com', 'role': 'Mozo'};
-      await AppStorage.setUserData(sampleUser);
-      expect(AppStorage.getUserData(), sampleUser);
-      expect(testBox.get(AppStorage.keyUserData), sampleUser);
+    test(
+      'persists and restores user data, cached menu, and table orders in Hive',
+      () async {
+        // 1. User data
+        final sampleUser = {
+          'id': 1,
+          'name': 'Mozo Augusto',
+          'email': 'augusto@polleria.com',
+          'role': 'Mozo',
+        };
+        await AppStorage.setUserData(sampleUser);
+        expect(AppStorage.getUserData(), sampleUser);
+        expect(testBox.get(AppStorage.keyUserData), sampleUser);
 
-      // 2. Cached menu
-      final sampleMenu = [
-        {'id': '1', 'name': '1/4 de pollo', 'price': 12.0, 'category': 'polloALaBrasa'},
-        {'id': '2', 'name': 'Parrilla', 'price': 18.0, 'category': 'parrillas'},
-      ];
-      await AppStorage.setCachedMenu(sampleMenu);
-      expect(AppStorage.getCachedMenu(), sampleMenu);
-      expect(testBox.get(AppStorage.keyCachedMenu), sampleMenu);
+        // 2. Cached menu
+        final sampleMenu = [
+          {
+            'id': '1',
+            'name': '1/4 de pollo',
+            'price': 12.0,
+            'category': 'polloALaBrasa',
+          },
+          {
+            'id': '2',
+            'name': 'Parrilla',
+            'price': 18.0,
+            'category': 'parrillas',
+          },
+        ];
+        await AppStorage.setCachedMenu(sampleMenu);
+        expect(AppStorage.getCachedMenu(), sampleMenu);
+        expect(testBox.get(AppStorage.keyCachedMenu), sampleMenu);
 
-      // 3. Table orders
-      final sampleOrders = {
-        1: [
-          {'product': {'id': '1', 'name': '1/4 de pollo', 'price': 12.0, 'category': 'polloALaBrasa'}, 'quantity': 2}
-        ],
-      };
-      await AppStorage.setTableOrders(sampleOrders);
-      final retrievedOrders = AppStorage.getTableOrders();
-      expect(retrievedOrders, isNotNull);
-      expect(retrievedOrders![1], isNotNull);
-      expect(retrievedOrders[1]!.first['quantity'], 2);
+        // 3. Table orders
+        final sampleOrders = {
+          '1': [
+            {
+              'product': {
+                'id': '1',
+                'name': '1/4 de pollo',
+                'price': 12.0,
+                'category': 'polloALaBrasa',
+              },
+              'quantity': 2,
+            },
+          ],
+        };
+        await AppStorage.setTableOrders(sampleOrders);
+        final retrievedOrders = AppStorage.getTableOrders();
+        expect(retrievedOrders, isNotNull);
+        expect(retrievedOrders!['1'], isNotNull);
+        expect(retrievedOrders['1']!.first['quantity'], 2);
 
-      // Cleanup user
-      await AppStorage.setUserData(null);
-      expect(AppStorage.getUserData(), isNull);
-    });
+        // Cleanup user
+        await AppStorage.setUserData(null);
+        expect(AppStorage.getUserData(), isNull);
+      },
+    );
   });
 }

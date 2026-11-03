@@ -23,11 +23,14 @@ La app acepta las siguientes variables mediante `--dart-define`:
 
 | Variable | Descripción | Valor por defecto |
 | --- | --- | --- |
-| `BACKEND_URL` | URL base del backend | `https://localhost:7200` (local) / `https://polleriaback1.onrender.com` (CI) |
+| `BACKEND_URL` | URL base del backend | `https://polleriaback1.onrender.com` (definida en `lib/config/backend_url.dart`) |
 | `PUSHER_APP_KEY` | App Key de Pusher Channels | `a442712ed0da505c97d1` |
 | `PUSHER_CLUSTER` | Clúster de Pusher | `us2` |
 | `PUSHER_PORT` | Puerto de conexión WebSocket | `443` |
 | `PUSHER_USE_TLS` | Usar `wss://` (true) o `ws://` (false) | `true` |
+
+> El CI/CD **no** sobrescribe estos valores con secretos ni variables de GitHub.
+> Los APK publicados usan la configuración definida en el código fuente.
 
 Ejemplo:
 
@@ -58,24 +61,24 @@ El workflow [`.github/workflows/release-apk.yml`](.github/workflows/release-apk.
 - `polleria-<version>+<build>-arm64-v8a.apk`
 - `polleria-<version>+<build>-x86_64.apk`
 - `polleria-<version>+<build>.aab` (para Google Play, opcional)
-- `build-info.txt` (versión, backend, clúster de Pusher, commit y variables usadas)
+- `build-info.txt` (versión, backend/configuración tomada del código, commit y variantes)
 - `SHA256SUMS.txt` (checksums de todos los archivos)
 
-### Variables y secretos del repositorio
+### Configuración del backend y Pusher
+
+El workflow **no** recibe `BACKEND_URL`, `PUSHER_APP_KEY` ni `PUSHER_CLUSTER`
+desde secretos, variables o inputs de GitHub. La app se compila con los valores
+que están en el código:
+
+- Backend: `lib/config/backend_url.dart`
+- Pusher: `lib/services/pusher_service.dart`
+
+Así el APK publicado usa exactamente las mismas credenciales que el frontend web
+y que el resto del código.
+
+### Secretos de firma Android
 
 Configúralos en **Settings → Secrets and variables → Actions**.
-
-Variables (no sensibles):
-
-| Nombre | Obligatorio | Descripción |
-| --- | --- | --- |
-| `BACKEND_URL` | No | URL del backend para el APK |
-| `PUSHER_APP_KEY` | No | App Key de Pusher |
-| `PUSHER_CLUSTER` | No | Clúster de Pusher |
-| `PUSHER_PORT` | No | Puerto de Pusher (`443`) |
-| `PUSHER_USE_TLS` | No | `true` o `false` |
-
-Secretos (firma del APK):
 
 | Nombre | Obligatorio | Descripción |
 | --- | --- | --- |

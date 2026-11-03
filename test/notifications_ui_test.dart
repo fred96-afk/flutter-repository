@@ -12,18 +12,16 @@ void main() {
   });
 
   group('NotificationIconButton and NotificationsSheet UI', () {
-    testWidgets('NotificationIconButton shows badge when unreadCount > 0', (tester) async {
+    testWidgets('NotificationIconButton shows badge when unreadCount > 0', (
+      tester,
+    ) async {
       final pusher = PusherService.instance;
       pusher.init();
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            appBar: AppBar(
-              actions: const [
-                NotificationIconButton(),
-              ],
-            ),
+            appBar: AppBar(actions: const [NotificationIconButton()]),
           ),
         ),
       );
@@ -45,18 +43,16 @@ void main() {
       expect(find.text('1'), findsOneWidget);
     });
 
-    testWidgets('Tapping NotificationIconButton opens NotificationsSheet', (tester) async {
+    testWidgets('Tapping NotificationIconButton opens NotificationsSheet', (
+      tester,
+    ) async {
       final pusher = PusherService.instance;
       pusher.init();
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            appBar: AppBar(
-              actions: const [
-                NotificationIconButton(),
-              ],
-            ),
+            appBar: AppBar(actions: const [NotificationIconButton()]),
           ),
         ),
       );
@@ -68,7 +64,9 @@ void main() {
       expect(find.text('Sin notificaciones'), findsOneWidget);
     });
 
-    testWidgets('NotificationsSheet displays notification cards and actions', (tester) async {
+    testWidgets('NotificationsSheet displays notification cards and actions', (
+      tester,
+    ) async {
       final pusher = PusherService.instance;
       pusher.init();
 
@@ -80,18 +78,14 @@ void main() {
           timestamp: DateTime.now(),
           type: NotificationType.newOrder,
           orderId: 200,
-          tableNumber: 3,
+          tableNumber: '3',
           amount: 90.0,
           isRead: false,
         ),
       );
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: NotificationsSheet(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: NotificationsSheet())),
       );
       await tester.pumpAndSettle();
 
@@ -117,7 +111,9 @@ void main() {
       expect(find.text('Sin notificaciones'), findsOneWidget);
     });
 
-    testWidgets('AppDrawer displays Notificaciones tile with unread badge', (tester) async {
+    testWidgets('AppDrawer displays Notificaciones tile with unread badge', (
+      tester,
+    ) async {
       final pusher = PusherService.instance;
       pusher.init();
 
@@ -128,21 +124,20 @@ void main() {
           message: 'Llamada de mozo',
           timestamp: DateTime.now(),
           type: NotificationType.callWaiter,
-          tableNumber: 2,
+          tableNumber: '2',
           isRead: false,
         ),
       );
 
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            drawer: AppDrawer(selectedRoute: '/home'),
-          ),
+          home: Scaffold(drawer: AppDrawer(selectedRoute: '/home')),
         ),
       );
 
       // Open drawer
-      final scaffoldState = tester.firstState(find.byType(Scaffold)) as ScaffoldState;
+      final scaffoldState =
+          tester.firstState(find.byType(Scaffold)) as ScaffoldState;
       scaffoldState.openDrawer();
       await tester.pumpAndSettle();
 

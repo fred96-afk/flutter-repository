@@ -23,7 +23,9 @@ class _AppState extends State<App> {
 
   @override
   void dispose() {
-    PusherService.instance.dispose();
+    // El servicio es un singleton global: solo cerramos la conexión, sin
+    // destruir el ChangeNotifier para que pueda reutilizarse (tests/hot reload).
+    PusherService.instance.disconnect();
     InactivityService.instance.dispose();
     super.dispose();
   }

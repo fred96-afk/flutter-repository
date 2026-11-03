@@ -61,7 +61,7 @@ class AppNotification {
   final DateTime timestamp;
   final NotificationType type;
   final int? orderId;
-  final int? tableNumber;
+  final String? tableNumber;
   final double? amount;
   final String? customerName;
   final String? status;
@@ -74,7 +74,7 @@ class AppNotification {
     DateTime? timestamp,
     NotificationType? type,
     int? orderId,
-    int? tableNumber,
+    String? tableNumber,
     double? amount,
     String? customerName,
     String? status,
@@ -113,10 +113,14 @@ class AppNotification {
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
-      id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          json['id']?.toString() ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       title: json['title']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
+      timestamp:
+          DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+          DateTime.now(),
       type: NotificationType.values.firstWhere(
         (t) => t.name == json['type'],
         orElse: () => NotificationType.general,
@@ -124,9 +128,9 @@ class AppNotification {
       orderId: json['orderId'] is int
           ? json['orderId'] as int
           : int.tryParse(json['orderId']?.toString() ?? ''),
-      tableNumber: json['tableNumber'] is int
-          ? json['tableNumber'] as int
-          : int.tryParse(json['tableNumber']?.toString() ?? ''),
+      tableNumber: json['tableNumber']?.toString().trim().isEmpty ?? true
+          ? null
+          : json['tableNumber']?.toString().trim(),
       amount: json['amount'] is num
           ? (json['amount'] as num).toDouble()
           : double.tryParse(json['amount']?.toString() ?? ''),

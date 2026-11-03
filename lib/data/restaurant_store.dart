@@ -166,7 +166,9 @@ class OrderItem {
   };
 
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-    product: MenuProduct.fromJson(Map<String, dynamic>.from(json['product'] as Map)),
+    product: MenuProduct.fromJson(
+      Map<String, dynamic>.from(json['product'] as Map),
+    ),
     quantity: json['quantity'] as int? ?? 1,
   );
 }
@@ -181,7 +183,7 @@ class CompletedOrder {
   });
 
   final String ticketNumber;
-  final int tableNumber;
+  final String tableNumber;
   final List<OrderItem> items;
   final DateTime completedAt;
   final int? remoteOrderId;
@@ -224,7 +226,7 @@ class RestaurantStore extends ChangeNotifier {
   }
 
   void _persistTableOrdersToHive() {
-    final map = <int, List<Map<String, dynamic>>>{};
+    final map = <String, List<Map<String, dynamic>>>{};
     _orders.forEach((table, items) {
       if (items.isNotEmpty) {
         map[table] = items.map((i) => i.toJson()).toList();
@@ -237,6 +239,256 @@ class RestaurantStore extends ChangeNotifier {
 
   final ProductsService _productsService = ProductsService();
   final OrdersService _ordersService = OrdersService();
+  final TablesService _tablesService = TablesService();
+
+  /// Mesas por defecto, idénticas al plano del frontend web y al seed del backend.
+  static const defaultTables = <RestaurantTableModel>[
+    // Salón Principal
+    RestaurantTableModel(
+      id: 1,
+      number: '1',
+      name: 'Mesa 1',
+      chairs: 4,
+      location: 'Salón Principal - Frente a Entrada',
+      mapId: 'salon-principal',
+      shape: 'square',
+      x: 8,
+      y: 12,
+    ),
+    RestaurantTableModel(
+      id: 2,
+      number: '2',
+      name: 'Mesa 2',
+      chairs: 4,
+      location: 'Salón Principal - Zona Centro',
+      mapId: 'salon-principal',
+      shape: 'square',
+      x: 32,
+      y: 12,
+    ),
+    RestaurantTableModel(
+      id: 3,
+      number: '3',
+      name: 'Mesa 3',
+      chairs: 6,
+      location: 'Salón Principal - Zona Familiar',
+      mapId: 'salon-principal',
+      shape: 'rectangle',
+      x: 56,
+      y: 12,
+    ),
+    RestaurantTableModel(
+      id: 4,
+      number: '4',
+      name: 'Mesa 4',
+      chairs: 6,
+      location: 'Salón Principal - Zona Familiar',
+      mapId: 'salon-principal',
+      shape: 'rectangle',
+      x: 80,
+      y: 12,
+    ),
+    RestaurantTableModel(
+      id: 5,
+      number: '5',
+      name: 'Mesa 5',
+      chairs: 4,
+      location: 'Salón Principal - Pasillo Central',
+      mapId: 'salon-principal',
+      shape: 'round',
+      x: 8,
+      y: 44,
+    ),
+    RestaurantTableModel(
+      id: 6,
+      number: '6',
+      name: 'Mesa 6',
+      chairs: 4,
+      location: 'Salón Principal - Pasillo Central',
+      mapId: 'salon-principal',
+      shape: 'round',
+      x: 32,
+      y: 44,
+    ),
+    RestaurantTableModel(
+      id: 7,
+      number: '7',
+      name: 'Mesa 7',
+      chairs: 8,
+      location: 'Salón Principal - Mesa Grupal',
+      mapId: 'salon-principal',
+      shape: 'rectangle',
+      x: 56,
+      y: 44,
+    ),
+    RestaurantTableModel(
+      id: 8,
+      number: '8',
+      name: 'Mesa 8',
+      chairs: 4,
+      location: 'Salón Principal - Pasillo Central',
+      mapId: 'salon-principal',
+      shape: 'round',
+      x: 80,
+      y: 44,
+    ),
+    RestaurantTableModel(
+      id: 9,
+      number: '9',
+      name: 'Mesa 9',
+      chairs: 2,
+      location: 'Salón Principal - Parejas Ventana',
+      mapId: 'salon-principal',
+      shape: 'round',
+      x: 8,
+      y: 76,
+    ),
+    RestaurantTableModel(
+      id: 10,
+      number: '10',
+      name: 'Mesa 10',
+      chairs: 2,
+      location: 'Salón Principal - Parejas Ventana',
+      mapId: 'salon-principal',
+      shape: 'round',
+      x: 32,
+      y: 76,
+    ),
+    RestaurantTableModel(
+      id: 11,
+      number: '11',
+      name: 'Mesa 11',
+      chairs: 4,
+      location: 'Salón Principal - Junto a Barra',
+      mapId: 'salon-principal',
+      shape: 'square',
+      x: 56,
+      y: 76,
+    ),
+    RestaurantTableModel(
+      id: 12,
+      number: '12',
+      name: 'Mesa 12',
+      chairs: 4,
+      location: 'Salón Principal - Junto a Barra',
+      mapId: 'salon-principal',
+      shape: 'square',
+      x: 80,
+      y: 76,
+    ),
+    // Terraza Exterior
+    RestaurantTableModel(
+      id: 13,
+      number: 'T-1',
+      name: 'Mesa Terraza 1',
+      chairs: 4,
+      location: 'Terraza Exterior - Vista Avenida',
+      mapId: 'terraza',
+      shape: 'round',
+      x: 15,
+      y: 20,
+    ),
+    RestaurantTableModel(
+      id: 14,
+      number: 'T-2',
+      name: 'Mesa Terraza 2',
+      chairs: 4,
+      location: 'Terraza Exterior - Vista Avenida',
+      mapId: 'terraza',
+      shape: 'round',
+      x: 45,
+      y: 20,
+    ),
+    RestaurantTableModel(
+      id: 15,
+      number: 'T-3',
+      name: 'Mesa Terraza 3',
+      chairs: 6,
+      location: 'Terraza Exterior - Área Jardín',
+      mapId: 'terraza',
+      shape: 'rectangle',
+      x: 75,
+      y: 20,
+    ),
+    RestaurantTableModel(
+      id: 16,
+      number: 'T-4',
+      name: 'Mesa Terraza 4',
+      chairs: 4,
+      location: 'Terraza Exterior - Zona Sombrillas',
+      mapId: 'terraza',
+      shape: 'round',
+      x: 15,
+      y: 65,
+    ),
+    RestaurantTableModel(
+      id: 17,
+      number: 'T-5',
+      name: 'Mesa Terraza 5',
+      chairs: 4,
+      location: 'Terraza Exterior - Zona Sombrillas',
+      mapId: 'terraza',
+      shape: 'round',
+      x: 45,
+      y: 65,
+    ),
+    RestaurantTableModel(
+      id: 18,
+      number: 'T-6',
+      name: 'Mesa Terraza 6',
+      chairs: 6,
+      location: 'Terraza Exterior - Área Jardín',
+      mapId: 'terraza',
+      shape: 'rectangle',
+      x: 75,
+      y: 65,
+    ),
+    // Segundo Nivel VIP
+    RestaurantTableModel(
+      id: 19,
+      number: 'VIP-1',
+      name: 'Mesa Presidencial',
+      chairs: 10,
+      location: 'Segundo Piso - Salón Presidencial',
+      mapId: 'segundo-piso',
+      shape: 'rectangle',
+      x: 25,
+      y: 30,
+    ),
+    RestaurantTableModel(
+      id: 20,
+      number: 'VIP-2',
+      name: 'Mesa Corporativa',
+      chairs: 8,
+      location: 'Segundo Piso - Sala de Eventos',
+      mapId: 'segundo-piso',
+      shape: 'rectangle',
+      x: 70,
+      y: 30,
+    ),
+    RestaurantTableModel(
+      id: 21,
+      number: 'VIP-3',
+      name: 'Salón Balcón A',
+      chairs: 4,
+      location: 'Segundo Piso - Balcón Panorámico A',
+      mapId: 'segundo-piso',
+      shape: 'round',
+      x: 25,
+      y: 70,
+    ),
+    RestaurantTableModel(
+      id: 22,
+      number: 'VIP-4',
+      name: 'Salón Balcón B',
+      chairs: 4,
+      location: 'Segundo Piso - Balcón Panorámico B',
+      mapId: 'segundo-piso',
+      shape: 'round',
+      x: 70,
+      y: 70,
+    ),
+  ];
 
   static const defaultMenu = <MenuProduct>[
     MenuProduct(
@@ -336,11 +588,25 @@ class RestaurantStore extends ChangeNotifier {
   String? _lastMenuError;
   String? get lastMenuError => _lastMenuError;
 
-  final Map<int, OrderResponse> _remoteOrders = {};
-  OrderResponse? remoteOrderFor(int tableNumber) => _remoteOrders[tableNumber];
+  List<RestaurantTableModel> _tables = List.of(defaultTables);
+  bool _isLoadingTables = false;
+  bool get isLoadingTables => _isLoadingTables;
 
-  final Map<int, List<OrderItem>> _orders = {};
-  final Set<int> _attendedTables = {};
+  String? _lastTablesError;
+  String? get lastTablesError => _lastTablesError;
+
+  /// Mesas sincronizadas con el backend, en el mismo orden que el plano web.
+  List<RestaurantTableModel> get tables => List.unmodifiable(_tables);
+
+  int get totalChairs =>
+      _tables.fold<int>(0, (total, table) => total + table.chairs);
+
+  final Map<String, OrderResponse> _remoteOrders = {};
+  OrderResponse? remoteOrderFor(String tableNumber) =>
+      _remoteOrders[tableNumber];
+
+  final Map<String, List<OrderItem>> _orders = {};
+  final Set<String> _attendedTables = {};
   final List<CompletedOrder> _completedOrders = [];
 
   List<CompletedOrder> get completedOrders =>
@@ -353,33 +619,41 @@ class RestaurantStore extends ChangeNotifier {
     return null;
   }
 
-  List<OrderItem> itemsFor(int tableNumber) =>
+  List<OrderItem> itemsFor(String tableNumber) =>
       List.unmodifiable(_orders[tableNumber] ?? const <OrderItem>[]);
 
-  List<int> tablesWithOrders({required bool attended}) {
+  List<String> tablesWithOrders({required bool attended}) {
     final tables = _orders.keys.where((table) {
       final hasItems = _orders[table]!.isNotEmpty;
       return hasItems && _attendedTables.contains(table) == attended;
-    }).toList()..sort();
+    }).toList();
+    final orderIndex = <String, int>{
+      for (var i = 0; i < _tables.length; i++) _tables[i].number: i,
+    };
+    tables.sort((a, b) {
+      final aIndex = orderIndex[a] ?? 9999;
+      final bIndex = orderIndex[b] ?? 9999;
+      return aIndex != bIndex ? aIndex.compareTo(bIndex) : a.compareTo(b);
+    });
     return tables;
   }
 
-  bool isOccupied(int tableNumber) =>
+  bool isOccupied(String tableNumber) =>
       _orders[tableNumber]?.isNotEmpty ?? false;
 
-  double totalFor(int tableNumber) =>
+  double totalFor(String tableNumber) =>
       (_orders[tableNumber] ?? const <OrderItem>[]).fold<double>(
         0,
         (total, item) => total + item.subtotal,
       );
 
-  int itemCountFor(int tableNumber) =>
+  int itemCountFor(String tableNumber) =>
       (_orders[tableNumber] ?? const <OrderItem>[]).fold<int>(
         0,
         (count, item) => count + item.quantity,
       );
 
-  void addProduct(int tableNumber, MenuProduct product) {
+  void addProduct(String tableNumber, MenuProduct product) {
     final items = _orders.putIfAbsent(tableNumber, () => []);
     final existingIndex = items.indexWhere(
       (item) => item.product.id == product.id,
@@ -394,7 +668,7 @@ class RestaurantStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeOne(int tableNumber, String productId) {
+  void removeOne(String tableNumber, String productId) {
     final items = _orders[tableNumber];
     if (items == null) return;
     final index = items.indexWhere((item) => item.product.id == productId);
@@ -412,7 +686,7 @@ class RestaurantStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearTable(int tableNumber) {
+  void clearTable(String tableNumber) {
     _orders.remove(tableNumber);
     _attendedTables.remove(tableNumber);
     _remoteOrders.remove(tableNumber);
@@ -420,9 +694,76 @@ class RestaurantStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void markAttended(int tableNumber) {
+  void markAttended(String tableNumber) {
     if (isOccupied(tableNumber)) {
       _attendedTables.add(tableNumber);
+      notifyListeners();
+    }
+  }
+
+  // ==========================================
+  // MESAS Y SECTORES
+  // ==========================================
+
+  /// Normaliza un número de mesa igual que el frontend web ("Mesa T-1" → "T-1").
+  static String normalizeTableNumber(String? number) {
+    if (number == null) return '';
+    return number
+        .trim()
+        .replaceFirst(RegExp(r'^mesa\s+', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'^m-', caseSensitive: false), '')
+        .trim();
+  }
+
+  /// Devuelve el nombre visible de una mesa ("Mesa Terraza 1", "Mesa Presidencial", ...).
+  String displayNameFor(String tableNumber) {
+    final table = tableFor(tableNumber);
+    if (table != null && table.displayName.trim().isNotEmpty) {
+      return table.displayName;
+    }
+    return 'Mesa $tableNumber';
+  }
+
+  /// Busca una mesa por número, ignorando mayúsculas y el prefijo "Mesa ".
+  RestaurantTableModel? tableFor(String tableNumber) {
+    final key = normalizeTableNumber(tableNumber).toLowerCase();
+    for (final table in _tables) {
+      if (normalizeTableNumber(table.number).toLowerCase() == key) {
+        return table;
+      }
+    }
+    return null;
+  }
+
+  /// Número canónico de una mesa (el que usa el backend) para asociar pedidos.
+  String _canonicalTableNumber(String value) {
+    final normalized = normalizeTableNumber(value);
+    if (normalized.isEmpty) return '';
+    for (final table in _tables) {
+      if (normalizeTableNumber(table.number).toLowerCase() ==
+          normalized.toLowerCase()) {
+        return table.number;
+      }
+    }
+    return normalized;
+  }
+
+  Future<void> loadTablesFromApi() async {
+    _isLoadingTables = true;
+    _lastTablesError = null;
+    notifyListeners();
+    try {
+      final apiTables = await _tablesService.getTables();
+      final activeTables = apiTables.where((t) => t.isActive).toList()
+        ..sort((a, b) => a.id.compareTo(b.id));
+      if (activeTables.isNotEmpty) {
+        _tables = activeTables;
+      }
+    } catch (e) {
+      _lastTablesError = e.toString();
+      developer.log('No se pudo cargar mesas desde la API: $e');
+    } finally {
+      _isLoadingTables = false;
       notifyListeners();
     }
   }
@@ -439,7 +780,9 @@ class RestaurantStore extends ChangeNotifier {
       }
     } catch (e) {
       _lastMenuError = e.toString();
-      developer.log('No se pudo cargar menú desde la API, verificando Hive: $e');
+      developer.log(
+        'No se pudo cargar menú desde la API, verificando Hive: $e',
+      );
       final cached = AppStorage.getCachedMenu();
       if (cached != null && cached.isNotEmpty && _menu.isEmpty) {
         _menu = cached.map(MenuProduct.fromJson).toList();
@@ -461,43 +804,50 @@ class RestaurantStore extends ChangeNotifier {
       for (final order in orders) {
         final tableStr = order.tableNumber;
         if (tableStr == null || tableStr.trim().isEmpty) continue;
-        final tableNum = int.tryParse(tableStr.trim());
-        if (tableNum == null || tableNum < 1 || tableNum > 18) continue;
+        final tableNumber = _canonicalTableNumber(tableStr);
+        if (tableNumber.isEmpty) continue;
 
         final statusLower = (order.status ?? '').toLowerCase();
-        final isCancelled = statusLower.contains('anulado') || statusLower.contains('cancel');
+        final isCancelled =
+            statusLower.contains('anulado') || statusLower.contains('cancel');
         if (isCancelled) continue;
 
-        _remoteOrders[tableNum] = order;
+        _remoteOrders[tableNumber] = order;
 
         final orderItems = <OrderItem>[];
         for (final item in order.items) {
           final existing = _menu.firstWhere(
             (p) =>
-                p.name.trim().toLowerCase() == item.productName.trim().toLowerCase() ||
+                p.name.trim().toLowerCase() ==
+                    item.productName.trim().toLowerCase() ||
                 p.id == item.id.toString(),
             orElse: () => MenuProduct(
               id: item.id.toString(),
               name: item.productName,
               price: item.price,
               icon: Icons.restaurant,
-              category: MenuCategory.fromApi(null, null, productName: item.productName),
+              category: MenuCategory.fromApi(
+                null,
+                null,
+                productName: item.productName,
+              ),
             ),
           );
           orderItems.add(OrderItem(product: existing, quantity: item.quantity));
         }
 
         if (orderItems.isNotEmpty) {
-          _orders[tableNum] = orderItems;
+          _orders[tableNumber] = orderItems;
         }
 
-        final isDelivered = statusLower.contains('entregado') ||
+        final isDelivered =
+            statusLower.contains('entregado') ||
             statusLower.contains('delivered') ||
             statusLower.contains('complet');
         if (isDelivered) {
-          _attendedTables.add(tableNum);
+          _attendedTables.add(tableNumber);
         } else {
-          _attendedTables.remove(tableNum);
+          _attendedTables.remove(tableNumber);
         }
       }
     } catch (e) {
@@ -511,13 +861,14 @@ class RestaurantStore extends ChangeNotifier {
 
   Future<void> loadAllFromApi() async {
     await Future.wait([
+      loadTablesFromApi(),
       loadMenuFromApi(),
       loadOrdersFromApi(),
     ]);
   }
 
   Future<CompletedOrder?> completeOrderForTicket(
-    int tableNumber, {
+    String tableNumber, {
     String? customerName,
     String? documentNumber,
     String? documentType,
@@ -532,17 +883,14 @@ class RestaurantStore extends ChangeNotifier {
     try {
       final details = currentItems.map((item) {
         final prodId = int.tryParse(item.product.id) ?? 1;
-        return OrderDetailRequest(
-          productId: prodId,
-          quantity: item.quantity,
-        );
+        return OrderDetailRequest(productId: prodId, quantity: item.quantity);
       }).toList();
 
       final request = OrderRequest(
-        tableNumber: tableNumber.toString(),
+        tableNumber: tableNumber,
         isPos: true,
         userId: 1,
-        customerName: customerName ?? 'Mesa $tableNumber',
+        customerName: customerName ?? displayNameFor(tableNumber),
         documentNumber: documentNumber,
         documentType: documentType,
         details: details,
@@ -561,10 +909,7 @@ class RestaurantStore extends ChangeNotifier {
       tableNumber: tableNumber,
       items: List.unmodifiable(
         currentItems.map(
-          (item) => OrderItem(
-            product: item.product,
-            quantity: item.quantity,
-          ),
+          (item) => OrderItem(product: item.product, quantity: item.quantity),
         ),
       ),
       completedAt: completedAt,
